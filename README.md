@@ -10,7 +10,7 @@ Prototypen är byggd som en enda statisk HTML-fil utan byggsteg eller beroenden,
 - **Checklista per månad** – bocka av uppgifter, lägg till egna uppgifter och ta bort dem.
 - **Sparat lokalt** – status sparas i webbläsarens `localStorage` (nyckel `boa-prototyp-v1`), så inget skickas till någon server.
 - **Profil** – kontaktuppgifter, husinformation och inställningar för påminnelser (endast demo, inget sparas på riktigt).
-- **Responsiv** – på desktop visas en telefonram som skalas efter fönstret; under 520 px bredd fyller appen hela skärmen.
+- **Responsiv** – på desktop visas en telefonram när den får plats i full storlek; i mindre eller inzoomade fönster fyller appen fönstret i stället, så att zoom alltid förstorar texten.
 
 ## Kom igång
 
@@ -42,9 +42,9 @@ localStorage.removeItem("boa-prototyp-v1"); location.reload();
 | Fil | Beskrivning |
 | --- | --- |
 | `index.html` | Hela prototypen: markup, CSS och JavaScript |
-| `house.png` | Hero-bild på startsidan |
-| `house-blur.png` | Suddig bakgrundsbild på profilsidan |
-| `avatar.png` | Profilbild |
+| `images/house.png` | Hero-bild på startsidan |
+| `images/house-blur.png` | Suddig bakgrundsbild på profilsidan |
+| `images/avatar.png` | Profilbild |
 | `CLAUDE.md` / `AGENTS.md` | Instruktioner för AI-kodagenter |
 
 ## Publicera

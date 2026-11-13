@@ -12,7 +12,7 @@ Boa är en klickbar prototyp av en personlig underhållsplan för villaägare. K
 - Ren HTML/CSS/vanilla JS. Inga ramverk, inget byggsteg, ingen `package.json`.
 - Typsnitt: Geist via Google Fonts, med fallback till systemtypsnitt.
 - Data sparas i `localStorage` under nyckeln `boa-prototyp-v1`. Ingen backend.
-- Bilder (`house.png`, `house-blur.png`, `avatar.png`) ligger i roten och refereras relativt.
+- Bilder (`house.png`, `house-blur.png`, `avatar.png`) ligger i mappen `images/` och refereras relativt (`images/house.png`).
 
 ## Köra lokalt
 
@@ -29,7 +29,7 @@ Det går också att öppna `index.html` direkt i webbläsaren.
 - **Skärmar**: `<main class="screen">` med id `screen-arshjul` (startsida) och `screen-profil`. Klassen `active` visar en skärm; flikraden (`.tabbar`, `data-target`) växlar mellan dem.
 - **Konstanter i JS**: `MONTHS`, `SHORT`, `SEASON`, `MONTH_SEASON`, `DEFAULT_ITEMS` (två standarduppgifter per månad).
 - **State**: `{ month, items[12][] }` där varje uppgift är `{ id, text, done, custom }`. Ändra state och anropa sedan `commit()` (sparar, ritar om checklistan och uppdaterar hjulet).
-- **Viktiga funktioner**: `sector()` (SVG-geometri), `updateWheel()`, `renderChecklist()`, `selectMonth()`, `toast()`, `fit()` (skalar telefonramen på desktop).
+- **Viktiga funktioner**: `sector()` (SVG-geometri), `updateWheel()`, `renderChecklist()`, `selectMonth()`, `toast()`, `layout()` (visar telefonram när den får plats i full storlek, annars helskärm – aldrig nedskalad, så att zoom fungerar).
 
 ## Riktlinjer
 
@@ -37,7 +37,7 @@ Det går också att öppna `index.html` direkt i webbläsaren.
 - Skriv all UI-text på svenska.
 - Bevara tillgängligheten: `aria`-attribut, tangentbordsnavigering i årshjulet (Enter/Space/piltangenter) och synliga fokusmarkeringar.
 - Om strukturen i `state` ändras, byt versionen i `STORE_KEY` så att gammal sparad data inte orsakar fel.
-- Testa både desktopvyn (telefonram) och mobilvyn (≤ 520 px).
+- Testa både desktopvyn (telefonram) och helskärmsvyn (fönster smalare än 450 px eller lägre än 922 px).
 
 ## Säkerhet och integritet
 

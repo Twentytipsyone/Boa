@@ -11,13 +11,15 @@
   :root {
     --ink: #09090b;
     --black: #000;
-    --muted: rgba(60,60,67,.6);
-    --border: #a1a1aa;
+    --muted: #6c6c70;          /* 5,23:1 mot vit */
+    --done: #71717a;           /* 4,83:1 mot vit */
+    --control-border: #8a8a92; /* 3,43:1 mot vit – fält, kryssrutor, reglage */
+    --border: #a1a1aa;         /* dekorativa ramar (kort, avdelare) */
     --border-soft: #e4e4e7;
     --primary: #18181b;
     --primary-fg: #fafafa;
     --danger: #d92424;
-    --accent: #c27457;
+    --accent: #a85d42;         /* vald månad, 4,87:1 mot vit text */
     --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
   }
   * { box-sizing: border-box; }
@@ -32,6 +34,7 @@
   }
   button, input { font: inherit; color: inherit; }
   button { cursor: pointer; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
   /* ---------- Device ---------- */
   .device {
@@ -42,18 +45,18 @@
     overflow: hidden;
     box-shadow: 0 0 0 11px #1d1d1f, 0 0 0 12px #3a3a3c, 0 30px 80px rgba(0,0,0,.25);
     flex-shrink: 0;
-    transform-origin: center;
   }
   .island {
     position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
     width: 124px; height: 36px; border-radius: 20px; background: #000; z-index: 20;
     pointer-events: none;
   }
-  @media (max-width: 520px) {
-    body { display: block; background: #fff; }
-    .device { width: 100%; height: 100dvh; border-radius: 0; box-shadow: none; transform: none !important; }
-    .island { display: none; }
-  }
+  /* Litet fönster eller inzoomat: telefonen fyller fönstret i stället för att krympas,
+     så att webbläsarens zoom alltid förstorar texten (WCAG 1.4.4). */
+  body.compact { display: block; }
+  body.compact .device { width: 100%; max-width: 430px; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; margin: 0 auto; }
+  @media (max-width: 430px) { body.compact { background: #fff; } }
+  body.compact .island { display: none; }
 
   /* ---------- Screens ---------- */
   .screen {
@@ -66,19 +69,21 @@
   }
   .screen::-webkit-scrollbar { display: none; }
   .screen.active { opacity: 1; visibility: visible; transition: opacity .2s ease; }
+  .screen:focus { outline: none; }
 
   .hero { position: relative; }
   .hero img.photo { display: block; width: 100%; height: auto; aspect-ratio: 402 / 264; }
 
   .content { padding: 24px 16px 144px; display: flex; flex-direction: column; gap: 16px; }
+  .content > * { flex-shrink: 0; }
 
   /* ---------- Startsida ---------- */
   .chip {
     position: absolute; left: 16px; bottom: 40px;
     display: inline-flex; align-items: center; gap: 8px;
-    height: 24px; padding: 4px 12px 4px 8px;
+    min-height: 24px; padding: 4px 12px 4px 8px;
     border-radius: 100px;
-    background: rgba(255,255,255,.8);
+    background: rgba(255,255,255,.88);
     -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     font-size: 12px; line-height: 16px; font-weight: 600; color: #1c1c1e;
   }
@@ -88,17 +93,31 @@
   .plan { display: flex; flex-direction: column; gap: 8px; }
   h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; color: var(--black); }
   .wheel-card { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 0; border-radius: 20.8px; }
+  .wheel-hint { margin: -8px 0 0; font-size: 12px; line-height: 16px; color: var(--muted); text-align: center; }
 
-  .wheel { width: 264px; height: 264px; display: block; overflow: visible; touch-action: manipulation; }
+  .wheel { width: 264px; height: 264px; max-width: 100%; display: block; overflow: visible; touch-action: manipulation; }
   .wheel .month { cursor: pointer; outline: none; }
   .wheel .month path { transition: fill .18s ease, transform .18s ease; transform-origin: 132px 132px; }
   .wheel .month:hover path { filter: brightness(.96); }
-  .wheel .month:focus-visible path { stroke: var(--ink); stroke-width: 2; }
-  .wheel .month.selected path { fill: var(--accent); }
-  .wheel .month.selected text { fill: #fff; }
+  /* Fokusram ritas i ett eget lager ovanpå hela hjulet så att hela ramen syns för alla månader.
+     Färgen är en mörk nyans av månadens säsongsfärg (sätts i JS, RING_COLOR):
+     ≥ 3,2:1 mot vald månad (#a85d42), ≥ 15,6:1 mot vitt, ≥ 12,4:1 mot månadsfärgerna. */
+  /* Fokusram i två lager: en vit innerkant mot månaden och en mörk säsongsfärgad ram utanför.
+     Den vita kanten skiljer ramen från en mörk vald månad, den mörka ramen syns mot vitt. */
+  .wheel .focus-ring { pointer-events: none; display: none; }
+  .wheel .focus-ring.show { display: inline; }
+  .wheel .focus-ring .inner { fill: none; stroke: #fff; stroke-width: 4; stroke-linejoin: round; }
+  .wheel .focus-ring .outer { fill: none; stroke-width: 3; stroke-linejoin: round; }
+  /* Vald månad: mörk nyans av månadens säsongsfärg (vit text 7,4–9,2:1, 6,4–7,5:1 mot ovalda månader) */
+  .wheel .month.winter[aria-checked="true"] path.seg { fill: #2d4a64; }
+  .wheel .month.spring[aria-checked="true"] path.seg { fill: #33573a; }
+  .wheel .month.summer[aria-checked="true"] path.seg { fill: #6a521c; }
+  .wheel .month.autumn[aria-checked="true"] path.seg { fill: #7a3f28; }
+  .wheel .month[aria-checked="true"] text { fill: #fff; }
   .wheel .month:active path { transform: scale(.985); }
   .wheel text { font-family: "Geist", system-ui, sans-serif; font-size: 10.4px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
   .wheel .mlabel { font-weight: 600; }
+  .wheel .season-label { dominant-baseline: auto; }
   .wheel .done-dot { pointer-events: none; transition: opacity .2s; }
   .wheel .center-name { font-size: 14.4px; font-weight: 600; fill: #000; }
   .wheel .center-count { font-size: 11.2px; fill: var(--muted); }
@@ -113,18 +132,19 @@
     box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   }
   .card-header { padding: 0 24px; display: flex; flex-direction: column; gap: 12px; }
-  .card-title { font-size: 16px; line-height: 16px; font-weight: 600; padding-top: 4px; }
+  .card-title { margin: 0; font-size: 16px; line-height: 16px; font-weight: 600; padding-top: 4px; }
   .sep { height: 1px; background: var(--border); }
-  .items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-  .item { display: flex; align-items: center; gap: 8px; min-height: 20px; }
-  .item label { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; line-height: 20px; }
+  .items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .item { display: flex; align-items: center; gap: 4px; }
+  .item label { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; line-height: 20px; min-height: 32px; padding: 6px 0; }
   .item .text { flex: 1; transition: color .15s; }
-  .item.done .text { color: #a1a1aa; text-decoration: line-through; }
+  .item.done .text { color: var(--done); text-decoration: line-through; }
   .item .tag { font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 100px; background: #f4f4f5; color: #52525b; font-weight: 500; }
+  .item.empty { min-height: 32px; font-size: 14px; line-height: 20px; color: var(--muted); }
   .cb {
     appearance: none; -webkit-appearance: none; margin: 0;
     width: 16px; height: 16px; flex-shrink: 0;
-    border: 1px solid var(--border); border-radius: 4px; background: #fff;
+    border: 1px solid var(--control-border); border-radius: 4px; background: #fff;
     box-shadow: var(--shadow-xs);
     display: grid; place-content: center; cursor: pointer;
     transition: background .15s, border-color .15s;
@@ -138,13 +158,14 @@
   .cb:checked::after { transform: scale(1); }
   .cb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .remove {
-    width: 24px; height: 24px; margin: -2px -4px -2px 0; border: 0; background: none; border-radius: 6px;
-    display: grid; place-items: center; color: #71717a;
+    width: 32px; height: 32px; margin-right: -8px; border: 0; background: none; border-radius: 6px;
+    display: grid; place-items: center; color: #52525b; flex-shrink: 0;
   }
   .remove:hover { background: #f4f4f5; color: var(--ink); }
+  .remove:focus-visible, .btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   .card-footer { padding: 0 24px; display: flex; justify-content: flex-end; }
   .btn {
-    height: 32px; padding: 0 12px; border-radius: 6px;
+    min-height: 32px; padding: 0 12px; border-radius: 6px;
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     font-size: 14px; line-height: 20px; font-weight: 500;
     border: 1px solid var(--border); background: #fff; box-shadow: var(--shadow-xs);
@@ -153,20 +174,24 @@
   .btn:hover { background: #f4f4f5; }
   .btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
   .btn.primary:hover { background: #27272a; }
-  .btn:disabled { opacity: .5; cursor: default; }
-  .btn.lg { height: 40px; padding: 0 16px; gap: 8px; border-color: var(--border-soft); flex: 1; }
+  .btn[aria-disabled="true"] { opacity: .5; cursor: default; }
+  .btn.lg { min-height: 40px; padding: 0 16px; gap: 8px; border-color: var(--border-soft); flex: 1 1 160px; }
   .btn.danger { color: var(--danger); }
 
   .add { display: flex; flex-direction: column; gap: 8px; }
   .add-title { font-size: 14px; line-height: 20px; font-weight: 500; }
   .add-row { display: flex; gap: 8px; align-items: center; }
   .input {
-    flex: 1; min-width: 0; height: 36px; padding: 4px 12px;
-    border: 1px solid var(--border); border-radius: 6px; background: #fff;
+    flex: 1; min-width: 0; height: 36px; padding: 4px 12px; flex-shrink: 0;
+    border: 1px solid var(--control-border); border-radius: 6px; background: #fff;
     box-shadow: var(--shadow-xs); font-size: 14px; line-height: 20px; outline: none;
   }
-  .input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(9,9,11,.08); }
-  .input::placeholder { color: #a1a1aa; }
+  .add-row .input { flex-shrink: 1; }
+  .input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(9,9,11,.12); }
+  .input::placeholder { color: var(--done); opacity: 1; }
+  .input[aria-invalid="true"] { border-color: var(--danger); }
+  .error { margin: -4px 0 0; font-size: 12px; line-height: 16px; color: #b91c1c; display: flex; gap: 6px; align-items: flex-start; }
+  .error[hidden] { display: none; }
   .all-done {
     display: none; align-items: center; gap: 8px; padding: 0 24px;
     font-size: 13px; line-height: 20px; color: #33573a;
@@ -180,31 +205,32 @@
   .who img { width: 96px; height: 96px; border-radius: 50%; display: block; }
   .who .name { font-size: 24px; line-height: 32px; font-weight: 600; }
   .section { display: flex; flex-direction: column; gap: 8px; }
-  .row-between { display: flex; align-items: center; justify-content: space-between; }
-  .label-strong { font-size: 14px; line-height: 20px; font-weight: 600; }
-  .label { font-size: 14px; line-height: 14px; font-weight: 500; display: block; }
+  .section > * { flex-shrink: 0; }
+  .row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .label-strong { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
+  .label { font-size: 14px; line-height: 20px; font-weight: 500; display: block; }
   .field { height: 40px; padding: 4px 12px; }
   .house-card { padding: 24px; gap: 8px; }
-  .house-card .title { font-size: 16px; line-height: 16px; font-weight: 600; }
+  .house-card .title { margin: 0; font-size: 16px; line-height: 16px; font-weight: 600; }
   .house-card .desc { font-size: 14px; line-height: 20px; }
-  .pref { display: flex; align-items: center; gap: 16px; }
+  .pref { display: flex; align-items: center; gap: 16px; min-height: 44px; cursor: pointer; }
   .pref .txt { flex: 1; display: flex; flex-direction: column; gap: 8px; }
   .pref .t { font-size: 14px; line-height: 20px; font-weight: 600; }
   .pref .d { font-size: 12px; line-height: 16px; }
   .switch {
     appearance: none; -webkit-appearance: none; margin: 0;
-    width: 32px; height: 18px; border-radius: 9999px; background: #e4e4e7;
+    width: 32px; height: 18px; border-radius: 9999px; background: var(--control-border);
     position: relative; cursor: pointer; flex-shrink: 0; box-shadow: var(--shadow-xs);
     transition: background .18s;
   }
   .switch::after {
     content: ""; position: absolute; top: 1px; left: 1px; width: 16px; height: 16px; border-radius: 50%;
-    background: #fafafa; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .18s ease;
+    background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .18s ease;
   }
   .switch:checked { background: var(--primary); }
   .switch:checked::after { transform: translateX(14px); }
   .switch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-  .actions { display: flex; gap: 16px; }
+  .actions { display: flex; gap: 16px; flex-wrap: wrap; }
 
   /* ---------- Tab bar ---------- */
   .tabbar {
@@ -214,13 +240,12 @@
   }
   .tabbar::before { content: ""; position: absolute; top: 0; left: 16px; right: 16px; height: 1px; background: var(--border-soft); }
   .tab {
-    flex: 1; border: 0; background: none; padding: 14px 0;
+    flex: 1; border: 0; background: none; padding: 14px 0; border-radius: 12px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     font-size: 14px; line-height: 20px; font-weight: 500; color: #000;
   }
   .tab svg { width: 48px; height: 48px; display: block; transition: transform .15s; }
   .tab:active svg { transform: scale(.92); }
-  .tab[aria-current="page"] { color: #000; }
   .home-indicator { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 100px; background: #000; }
 
   /* ---------- Toast ---------- */
@@ -228,11 +253,14 @@
     position: absolute; left: 50%; bottom: 146px; transform: translate(-50%, 12px);
     background: var(--primary); color: var(--primary-fg);
     font-size: 14px; line-height: 20px; font-weight: 500;
-    padding: 8px 14px; border-radius: 100px; z-index: 30;
+    padding: 8px 14px; border-radius: 100px; z-index: 30; max-width: calc(100% - 32px); text-align: center;
     opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
-    white-space: nowrap;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
 </style>
 </head>
 <body>
@@ -240,9 +268,9 @@
   <div class="island" aria-hidden="true"></div>
 
   <!-- ================= Startsida ================= -->
-  <main class="screen active" id="screen-arshjul" aria-label="Startsida">
+  <main class="screen active" id="screen-arshjul" aria-labelledby="h-start" tabindex="-1">
     <div class="hero">
-      <img class="photo" src="house.png" alt="Villan, byggd 1964">
+      <img class="photo" src="images/house.png" alt="Villan, en enplansvilla i tegel och trä med carport">
       <div class="chip">
         <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7.408 1.517a.64.64 0 0 0-.816 0l-4.9 4.141a.6.6 0 0 0 .758.934l.467-.408v5.483c0 .232.092.455.256.619a.875.875 0 0 0 .619.256h2.1v-3.5h2.216v3.5h2.1a.875.875 0 0 0 .875-.875V6.183l.467.409a.6.6 0 0 0 .758-.934l-4.9-4.141Z" fill="#1C1C1E"/></svg>
         Villa · byggd 1964
@@ -250,55 +278,59 @@
     </div>
     <div class="content">
       <div class="greeting">
-        <h1>Hej Kajsa</h1>
+        <h1 id="h-start">Hej Kajsa</h1>
         <p class="subtitle">Välkommen till Boa - din personliga underhållsplan</p>
       </div>
       <section class="plan" aria-labelledby="plan-title">
         <h2 id="plan-title">Din underhållsplan 2026</h2>
         <div class="wheel-card">
-          <svg class="wheel" id="wheel" viewBox="0 0 264 264" role="group" aria-label="Årshjul – välj månad"></svg>
-          <div class="checklist" id="checklist" aria-live="polite"></div>
+          <svg class="wheel" id="wheel" viewBox="0 0 264 264" role="radiogroup" aria-labelledby="wheel-label" aria-describedby="wheel-hint"></svg>
+          <span id="wheel-label" class="sr-only">Årshjul – välj månad</span>
+          <p class="wheel-hint" id="wheel-hint">Tryck på en månad för att se dess checklista</p>
+          <div class="checklist" id="checklist"></div>
         </div>
       </section>
     </div>
   </main>
 
   <!-- ================= Profil ================= -->
-  <main class="screen" id="screen-profil" aria-label="Profil">
+  <main class="screen" id="screen-profil" aria-labelledby="h-profil" tabindex="-1">
     <div class="profile-hero">
-      <img class="photo" src="house-blur.png" alt="">
+      <img class="photo" src="images/house-blur.png" alt="">
       <div class="who">
-        <img src="avatar.png" alt="Kajsa Widestam">
+        <img src="images/avatar.png" alt="Profilbild av Kajsa Widestam">
         <div class="name">Kajsa Widestam</div>
       </div>
     </div>
     <div class="content">
-      <h1>Profil</h1>
-      <form class="section" id="contact-form" autocomplete="off">
+      <h1 id="h-profil">Profil</h1>
+      <form class="section" id="contact-form" autocomplete="on" novalidate aria-labelledby="h-contact">
         <div class="row-between">
-          <span class="label-strong">Kontaktuppgifter</span>
-          <button class="btn primary" type="submit">Spara</button>
+          <h2 class="label-strong" id="h-contact">Kontaktuppgifter</h2>
         </div>
         <label class="label" for="email">E-post</label>
-        <input class="input field" id="email" type="email" value="kajsa.widestam@outlook.com">
+        <input class="input field" id="email" name="email" type="email" autocomplete="email" value="kajsa.widestam@outlook.com" aria-describedby="email-error">
+        <p class="error" id="email-error" hidden></p>
         <label class="label" for="phone">Telefon</label>
-        <input class="input field" id="phone" type="tel" value="070-549 63 18">
+        <input class="input field" id="phone" name="phone" type="tel" autocomplete="tel" value="070-549 63 18" aria-describedby="phone-error">
+        <p class="error" id="phone-error" hidden></p>
+        <button class="btn primary" type="submit" style="width: 100%; min-height: 40px; margin-top: 8px">Spara</button>
       </form>
       <div class="card house-card">
-        <div class="title">Mitt hus</div>
+        <h2 class="title">Mitt hus</h2>
         <div class="desc">Storgatan 12 · Västerås</div>
       </div>
-      <div class="section">
-        <span class="label-strong" style="font-weight:500">Påminnelser</span>
-        <div class="pref">
-          <div class="txt"><span class="t">Underhåll</span><span class="d">När det är dags att ta hand om huset</span></div>
-          <input class="switch" type="checkbox" role="switch" checked aria-label="Påminnelser om underhåll">
-        </div>
-        <div class="pref">
-          <div class="txt"><span class="t">Säsongstips</span><span class="d">Råd inför nästa säsong</span></div>
-          <input class="switch" type="checkbox" role="switch" checked aria-label="Säsongstips">
-        </div>
-      </div>
+      <fieldset class="section" style="border:0;margin:0;padding:0;min-width:0">
+        <legend class="label" style="padding:0;margin-bottom:8px">Påminnelser</legend>
+        <label class="pref" for="sw-maint">
+          <span class="txt"><span class="t">Underhåll</span><span class="d" id="sw-maint-d">När det är dags att ta hand om huset</span></span>
+          <input class="switch" id="sw-maint" type="checkbox" role="switch" checked aria-describedby="sw-maint-d">
+        </label>
+        <label class="pref" for="sw-tips">
+          <span class="txt"><span class="t">Säsongstips</span><span class="d" id="sw-tips-d">Råd inför nästa säsong</span></span>
+          <input class="switch" id="sw-tips" type="checkbox" role="switch" checked aria-describedby="sw-tips-d">
+        </label>
+      </fieldset>
       <div class="actions">
         <button class="btn lg" type="button" data-toast="Kontoinställningar är inte med i prototypen">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M12.933 10a1.1 1.1 0 0 0 .22 1.213l.04.04a1.334 1.334 0 1 1-1.886 1.887l-.04-.04a1.1 1.1 0 0 0-1.214-.22 1.1 1.1 0 0 0-.666 1.006V14a1.333 1.333 0 1 1-2.667 0v-.06A1.1 1.1 0 0 0 6 12.933a1.1 1.1 0 0 0-1.213.22l-.04.04a1.334 1.334 0 1 1-1.887-1.886l.04-.04a1.1 1.1 0 0 0 .22-1.214 1.1 1.1 0 0 0-1.007-.666H2a1.333 1.333 0 0 1 0-2.667h.06A1.1 1.1 0 0 0 3.067 6a1.1 1.1 0 0 0-.22-1.213l-.04-.04A1.334 1.334 0 1 1 4.693 2.86l.04.04a1.1 1.1 0 0 0 1.214.22H6a1.1 1.1 0 0 0 .667-1.007V2a1.333 1.333 0 0 1 2.666 0v.06a1.1 1.1 0 0 0 .667 1.007 1.1 1.1 0 0 0 1.213-.22l.04-.04a1.334 1.334 0 1 1 1.887 1.886l-.04.04a1.1 1.1 0 0 0-.22 1.214V6a1.1 1.1 0 0 0 1.007.667H14a1.333 1.333 0 0 1 0 2.666h-.06a1.1 1.1 0 0 0-1.007.667Z" stroke="#09090B" stroke-width="1.333" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" stroke="#09090B" stroke-width="1.333"/></svg>
@@ -314,27 +346,29 @@
 
   <!-- ================= Tab bar ================= -->
   <nav class="tabbar" aria-label="Huvudnavigering">
-    <button class="tab" data-target="screen-arshjul" aria-current="page">
+    <button class="tab" type="button" data-target="screen-arshjul" aria-current="page">
       <svg viewBox="0 0 48 48" aria-hidden="true"><g fill="#000"><path d="M24.333 10.671a13.4 13.4 0 0 1 6.043 1.62l-1.667 2.886a10 10 0 0 0-4.376-1.172v-3.334Z"/><path d="M30.953 12.623a13.4 13.4 0 0 1 4.423 4.424l-2.886 1.667a10 10 0 0 0-3.204-3.203l1.667-2.888Z"/><path d="M35.71 17.624a13.4 13.4 0 0 1 1.619 6.043h-3.334a10 10 0 0 0-1.173-4.376l2.888-1.667Z"/><path d="M37.33 24.333a13.4 13.4 0 0 1-1.62 6.043l-2.887-1.667a10 10 0 0 0 1.172-4.376h3.334Z"/><path d="M35.377 30.953a13.4 13.4 0 0 1-4.424 4.424l-1.667-2.887a10 10 0 0 0 3.203-3.204l2.888 1.667Z"/><path d="M30.376 35.71a13.4 13.4 0 0 1-6.043 1.619v-3.334a10 10 0 0 0 4.376-1.173l1.667 2.888Z"/><path d="M23.667 37.33a13.4 13.4 0 0 1-6.043-1.62l1.667-2.887a10 10 0 0 0 4.376 1.172v3.334Z"/><path d="M17.047 35.377a13.4 13.4 0 0 1-4.424-4.424l2.887-1.667a10 10 0 0 0 3.204 3.203l-1.667 2.888Z"/><path d="M12.29 30.376a13.4 13.4 0 0 1-1.619-6.043h3.334a10 10 0 0 0 1.173 4.376l-2.888 1.667Z"/><path d="M10.67 23.667a13.4 13.4 0 0 1 1.62-6.043l2.887 1.667a10 10 0 0 0-1.172 4.376H10.67Z"/><path d="M12.623 17.047a13.4 13.4 0 0 1 4.424-4.424l1.667 2.887a10 10 0 0 0-3.203 3.204l-2.888-1.667Z"/><path d="M17.624 12.29a13.4 13.4 0 0 1 6.043-1.619v3.334a10 10 0 0 0-4.376 1.173l-1.667-2.888Z"/><path d="M19.759 16.002a8.8 8.8 0 0 1 11.92 3.165l-2.998 1.74a5.3 5.3 0 0 0-7.182-1.906l-1.74-2.999Z"/><path d="M31.998 19.759a8.8 8.8 0 0 1-3.164 11.92l-1.741-2.998a5.3 5.3 0 0 0 1.906-7.182l2.999-1.74Z"/><path d="M28.241 31.998a8.8 8.8 0 0 1-11.92-3.165l2.998-1.74a5.3 5.3 0 0 0 7.182 1.906l1.74 2.999Z"/><path d="M16.002 28.241a8.8 8.8 0 0 1 3.164-11.92l1.741 2.998a5.3 5.3 0 0 0-1.906 7.182l-2.999 1.74Z"/></g></svg>
       Årshjul
     </button>
-    <button class="tab" data-target="screen-profil">
-      <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#1C1B1F" d="M14.66 32.16a16 16 0 0 1 4.56-2.46 15.6 15.6 0 0 1 5.28-.9c1.84 0 3.6.3 5.28.9 1.68.6 3.2 1.42 4.56 2.46a12.6 12.6 0 0 0 2.18-3.72c.52-1.387.78-2.867.78-4.44 0-3.547-1.247-6.567-3.74-9.06C31.067 12.447 28.047 11.2 24.5 11.2s-6.567 1.247-9.06 3.74C12.947 17.433 11.7 20.453 11.7 24c0 1.573.26 3.053.78 4.44a12.6 12.6 0 0 0 2.18 3.72Zm5.86-8.18c-1.08-1.08-1.62-2.407-1.62-3.98s.54-2.9 1.62-3.98c1.08-1.08 2.407-1.62 3.98-1.62s2.9.54 3.98 1.62c1.08 1.08 1.62 2.407 1.62 3.98s-.54 2.9-1.62 3.98c-1.08 1.08-2.407 1.62-3.98 1.62s-2.9-.54-3.98-1.62ZM24.5 40a15.6 15.6 0 0 1-6.24-1.26 16.2 16.2 0 0 1-5.08-3.42 16.2 16.2 0 0 1-3.42-5.08A15.6 15.6 0 0 1 8.5 24c0-2.213.42-4.293 1.26-6.24a16.2 16.2 0 0 1 3.42-5.08 16.2 16.2 0 0 1 5.08-3.42A15.6 15.6 0 0 1 24.5 8c2.213 0 4.293.42 6.24 1.26a16.2 16.2 0 0 1 5.08 3.42 16.2 16.2 0 0 1 3.42 5.08c.84 1.947 1.26 4.027 1.26 6.24s-.42 4.293-1.26 6.24a16.2 16.2 0 0 1-3.42 5.08 16.2 16.2 0 0 1-5.08 3.42A15.6 15.6 0 0 1 24.5 40Zm4-3.82a12.3 12.3 0 0 0 3.44-1.78 12.3 12.3 0 0 0-3.44-1.78A12.8 12.8 0 0 0 24.5 32c-1.413 0-2.747.207-4 .62a12.3 12.3 0 0 0-3.44 1.78 12.3 12.3 0 0 0 3.44 1.78c1.253.413 2.587.62 4 .62s2.747-.207 4-.62Zm-2.28-14.46c.453-.453.68-1.027.68-1.72s-.227-1.267-.68-1.72c-.453-.453-1.027-.68-1.72-.68s-1.267.227-1.72.68c-.453.453-.68 1.027-.68 1.72s.227 1.267.68 1.72c.453.453 1.027.68 1.72.68s1.267-.227 1.72-.68Z"/></svg>
+    <button class="tab" type="button" data-target="screen-profil">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#1C1B1F" d="M14.66 32.16a16 16 0 0 1 4.56-2.46 15.6 15.6 0 0 1 5.28-.9c1.84 0 3.6.3 5.28.9 1.68.6 3.2 1.420 4.56 2.46a12.6 12.6 0 0 0 2.18-3.72c.52-1.387.78-2.867.78-4.44 0-3.547-1.247-6.567-3.740-9.06C31.067 12.447 28.047 11.2 24.5 11.2s-6.567 1.247-9.06 3.74C12.947 17.433 11.7 20.453 11.7 24c0 1.573.26 3.053.78 4.44a12.6 12.6 0 0 0 2.18 3.72Zm5.86-8.18c-1.08-1.08-1.62-2.407-1.62-3.98s.54-2.9 1.62-3.98c1.08-1.08 2.407-1.62 3.98-1.62s2.9.54 3.98 1.62c1.08 1.08 1.62 2.407 1.62 3.98s-.54 2.9-1.62 3.98c-1.08 1.08-2.407 1.62-3.98 1.62s-2.9-.54-3.98-1.62ZM24.5 40a15.6 15.6 0 0 1-6.24-1.26 16.2 16.2 0 0 1-5.08-3.42 16.2 16.2 0 0 1-3.42-5.08A15.6 15.6 0 0 1 8.5 24c0-2.213.42-4.293 1.26-6.24a16.2 16.2 0 0 1 3.42-5.08 16.2 16.2 0 0 1 5.08-3.42A15.6 15.6 0 0 1 24.5 8c2.213 0 4.293.42 6.24 1.26a16.2 16.2 0 0 1 5.080 3.42 16.2 16.2 0 0 1 3.42 5.08c.84 1.947 1.26 4.027 1.26 6.24s-.42 4.293-1.26 6.24a16.2 16.2 0 0 1-3.42 5.08 16.2 16.2 0 0 1-5.08 3.42A15.6 15.6 0 0 1 24.5 40Zm4-3.82a12.3 12.3 0 0 0 3.44-1.78 12.3 12.3 0 0 0-3.44-1.78A12.8 12.8 0 0 0 24.5 32c-1.413 0-2.747.207-4 .62a12.3 12.3 0 0 0-3.44 1.78 12.3 12.3 0 0 0 3.44 1.78c1.253.413 2.587.62 4 .62s2.747-.207 4-.62Zm-2.28-14.46c.453-.453.68-1.027.68-1.72s-.227-1.267-.68-1.72c-.453-.453-1.027-.68-1.72-.68s-1.267.227-1.72.68c-.453.453-.68 1.027-.68 1.72s.227 1.267.68 1.72c.453.453 1.027.68 1.72.68s1.267-.227 1.72-.68Z"/></svg>
       Profil
     </button>
     <div class="home-indicator" aria-hidden="true"></div>
   </nav>
 
-  <div class="toast" id="toast" role="status"></div>
+  <div class="toast" id="toast" aria-hidden="true"></div>
+  <div class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></div>
 </div>
 
 <script>
 (() => {
   const MONTHS = ["Januari","Februari","Mars","April","Maj","Juni","Juli","Augusti","September","Oktober","November","December"];
   const SHORT  = ["Jan","Feb","Mar","Apr","Maj","Jun","Jul","Aug","Sep","Okt","Nov","Dec"];
-  // Säsonger enligt årshjulet i Figma
   const SEASON = { winter: {fill:"#dfe9f3", ink:"#2d4a64"}, spring: {fill:"#e0eddb", ink:"#33573a"},
                    summer: {fill:"#f7edd2", ink:"#6a521c"}, autumn: {fill:"#f5e1d7", ink:"#7a3f28"} };
+  // Mörka säsongsnyanser för fokusramen – klarar 3:1 även mot vald månad (WCAG 1.4.11)
+  const RING_COLOR = { winter: "#162431", spring: "#17271a", summer: "#2b220b", autumn: "#371c12" };
   const MONTH_SEASON = ["winter","winter","spring","spring","spring","summer","summer","summer","autumn","autumn","autumn","winter"];
   const DEFAULT_ITEMS = [
     ["Gå igenom villkoren i hemförsäkringen","Byt eller rengör ventilationsfiltren"],
@@ -362,6 +396,16 @@
   if (!state || !Array.isArray(state.items) || state.items.length !== 12) state = freshState();
   const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} };
 
+  /* ---------------- Uppläsning för skärmläsare ---------------- */
+  const announcer = document.getElementById("announcer");
+  let announceTimer;
+  function announce(msg) {
+    announcer.textContent = "";
+    clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => { announcer.textContent = msg; }, 60);
+  }
+  const progress = m => { const l = state.items[m]; return `${l.filter(x => x.done).length} av ${l.length} klara`; };
+
   /* ---------------- Årshjul ---------------- */
   const svgNS = "http://www.w3.org/2000/svg";
   const C = 132, deg = Math.PI / 180;
@@ -374,11 +418,10 @@
   const el = (tag, attrs, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
 
   const wheel = document.getElementById("wheel");
-  const R_OUT = 128, R_IN = 128 * 0.675;          // månadsring
-  const S_OUT = 83.2, S_IN = 83.2 * 0.6346;        // säsongsring
+  const R_OUT = 128, R_IN = 128 * 0.675;
+  const S_OUT = 83.2, S_IN = 83.2 * 0.6346;
   const STROKE = { stroke: "#fff", "stroke-width": 2.4, "stroke-linejoin": "round" };
 
-  // Säsongsring (dekorativ)
   const seasons = [
     { name: "Vinter", from: -120, to: -30, fill: "#c6d8ea", ink: "#2d4a64" },
     { name: "Vår",    from: -30,  to: 60,  fill: "#c8e0c0", ink: "#33573a" },
@@ -386,163 +429,240 @@
     { name: "Höst",   from: 150,  to: 240, fill: "#ebc7b5", ink: "#7a3f28" }
   ];
   const seasonG = el("g", { "aria-hidden": "true" }, wheel);
-  seasons.forEach(s => {
+  // Säsongsnamnen följer ringens båge. På nedre halvan går bågen åt andra hållet
+  // så att texten alltid läses rättvänd, från vänster till höger.
+  const seasonDefs = el("defs", {}, seasonG);
+  const R_MID = (S_IN + S_OUT) / 2;
+  const TEXT_SHIFT = 3.6; // flyttar baslinjen så att texten hamnar mitt i ringen
+  seasons.forEach((s, k) => {
     el("path", { d: sector(S_IN, S_OUT, s.from * deg, s.to * deg), fill: s.fill, ...STROKE }, seasonG);
-    const mid = (s.from + s.to) / 2 * deg, [x, y] = pt((S_IN + S_OUT) / 2, mid);
-    el("text", { x, y, fill: s.ink }, seasonG).textContent = s.name;
+    const midDeg = (((s.from + s.to) / 2) % 360 + 360) % 360;
+    const lowerHalf = midDeg > 0 && midDeg < 180;      // y-axeln pekar nedåt i SVG
+    const r = lowerHalf ? R_MID + TEXT_SHIFT : R_MID - TEXT_SHIFT;
+    const a0 = s.from * deg, a1 = s.to * deg;
+    const [sx, sy] = pt(r, lowerHalf ? a1 : a0), [ex, ey] = pt(r, lowerHalf ? a0 : a1);
+    const id = "season-arc-" + k;
+    el("path", { id, d: `M${sx} ${sy}A${r} ${r} 0 0 ${lowerHalf ? 0 : 1} ${ex} ${ey}`, fill: "none" }, seasonDefs);
+    const t = el("text", { fill: s.ink, class: "season-label" }, seasonG);
+    const tp = el("textPath", { href: "#" + id, startOffset: "50%" }, t);
+    tp.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", "#" + id);
+    tp.textContent = s.name;
   });
 
-  // Månadsring (klickbar)
+  const focusRing = document.createElementNS(svgNS, "g");
+  focusRing.setAttribute("class", "focus-ring");
+  focusRing.setAttribute("aria-hidden", "true");
+  const ringInner = el("path", { class: "inner" }, focusRing);
+  const ringOuter = el("path", { class: "outer" }, focusRing);
+  const RING_GAP = 3.5; // hur långt utanför segmentet den mörka ramen ligger
+  // Segmentets kontur förskjuten d px utåt: bågarna får radie ±d och de raka kanterna flyttas parallellt
+  function outsetPath(r0, r1, a0, a1, d) {
+    const R1 = r1 + d, R0 = Math.max(r0 - d, 1);
+    const b0 = a0 - Math.asin(d / R1), b1 = a1 + Math.asin(d / R1);
+    const c0 = a0 - Math.asin(Math.min(d / R0, 1)), c1 = a1 + Math.asin(Math.min(d / R0, 1));
+    const [x0, y0] = pt(R1, b0), [x1, y1] = pt(R1, b1), [x2, y2] = pt(R0, c1), [x3, y3] = pt(R0, c0);
+    return `M${x0} ${y0}A${R1} ${R1} 0 0 1 ${x1} ${y1}L${x2} ${y2}A${R0} ${R0} 0 0 0 ${x3} ${y3}Z`;
+  }
+
+  // Månaderna är en radiogrupp: ett tabbstopp, piltangenter flyttar mellan månader (WCAG 2.4.3)
   const monthEls = [];
   for (let i = 0; i < 12; i++) {
     const a0 = (-90 + i * 30) * deg, a1 = (-60 + i * 30) * deg, mid = (a0 + a1) / 2;
     const sea = SEASON[MONTH_SEASON[i]];
-    const g = el("g", { class: "month", tabindex: 0, role: "button", "data-i": i }, wheel);
-    el("path", { d: sector(R_IN, R_OUT, a0, a1), fill: sea.fill, ...STROKE }, g);
+    const g = el("g", { class: "month " + MONTH_SEASON[i], role: "radio", "data-i": i, tabindex: -1 }, wheel);
+    el("path", { class: "seg", d: sector(R_IN, R_OUT, a0, a1), fill: sea.fill, ...STROKE }, g);
     const [x, y] = pt((R_IN + R_OUT) / 2, mid);
-    el("text", { x, y: y - 1, class: "mlabel", fill: sea.ink }, g).textContent = SHORT[i];
-    const [dx, dy] = pt((R_IN + R_OUT) / 2, mid);
-    const dot = el("circle", { cx: dx, cy: dy + 10, r: 1.8, class: "done-dot", fill: sea.ink, opacity: 0 }, g);
-    g.addEventListener("click", () => selectMonth(i, true));
+    el("text", { x, y: y - 1, class: "mlabel", fill: sea.ink, "aria-hidden": "true" }, g).textContent = SHORT[i];
+    const dot = el("circle", { cx: x, cy: y + 10, r: 1.8, class: "done-dot", fill: sea.ink, opacity: 0, "aria-hidden": "true" }, g);
+    g.addEventListener("click", () => selectMonth(i, { scroll: true, focus: true }));
     g.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectMonth(i, true); }
-      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); monthEls[(i + 1) % 12].g.focus(); }
-      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); monthEls[(i + 11) % 12].g.focus(); }
+      const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+      if (e.key in keys) { e.preventDefault(); selectMonth((i + keys[e.key] + 12) % 12, { focus: true }); }
+      else if (e.key === "Home") { e.preventDefault(); selectMonth(0, { focus: true }); }
+      else if (e.key === "End") { e.preventDefault(); selectMonth(11, { focus: true }); }
+      else if (e.key === " " || e.key === "Enter") { e.preventDefault(); selectMonth(i, { scroll: true, focus: true }); }
     });
+    const segD = sector(R_IN, R_OUT, a0, a1);
+    const ringD = outsetPath(R_IN, R_OUT, a0, a1, RING_GAP);
+    g.addEventListener("focus", () => { ringInner.setAttribute("d", segD); ringOuter.setAttribute("d", ringD); ringOuter.style.stroke = RING_COLOR[MONTH_SEASON[i]]; focusRing.classList.add("show"); });
+    g.addEventListener("blur", () => focusRing.classList.remove("show"));
     monthEls.push({ g, dot, ink: sea.ink });
   }
-
-  // Mitten
-  const centerName = el("text", { x: C, y: C - 8, class: "center-name" }, wheel);
-  const centerCount = el("text", { x: C, y: C + 12, class: "center-count" }, wheel);
+  const centerG = el("g", { "aria-hidden": "true" }, wheel);
+  // Fokusramen läggs sist i SVG:en så att inga segment ritas ovanpå den
+  wheel.appendChild(focusRing);
+  const centerName = el("text", { x: C, y: C - 8, class: "center-name" }, centerG);
+  const centerCount = el("text", { x: C, y: C + 12, class: "center-count" }, centerG);
 
   function updateWheel() {
     monthEls.forEach((m, i) => {
       const list = state.items[i];
       const doneAll = list.length > 0 && list.every(it => it.done);
       const sel = i === state.month;
-      m.g.classList.toggle("selected", sel);
-      m.g.setAttribute("aria-pressed", sel ? "true" : "false");
-      m.g.setAttribute("aria-label", `${MONTHS[i]}, ${list.filter(x => x.done).length} av ${list.length} klara`);
+      m.g.setAttribute("aria-checked", sel ? "true" : "false");
+      m.g.setAttribute("tabindex", sel ? "0" : "-1");
+      // Synlig text ("Jan") först i namnet (WCAG 2.5.3)
+      m.g.setAttribute("aria-label", `${SHORT[i]} (${MONTHS[i].toLowerCase()}), ${progress(i)}`);
       m.dot.setAttribute("opacity", doneAll ? 1 : 0);
       m.dot.setAttribute("fill", sel ? "#fff" : m.ink);
     });
-    const list = state.items[state.month];
     centerName.textContent = MONTHS[state.month];
-    centerCount.textContent = `${list.filter(x => x.done).length} av ${list.length} klara`;
+    centerCount.textContent = progress(state.month);
   }
 
   /* ---------------- Checklista ---------------- */
   const checklist = document.getElementById("checklist");
   const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13.333 4 6 11.333 2.667 8" stroke="currentColor" stroke-width="1.333" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const X_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M12 4 4 12M4 4l8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  const X_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M12 4 4 12M4 4l8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  const ERR_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="flex-shrink:0"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 4.8v3.7M8 10.9v.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 
   function renderChecklist(animate) {
     const m = state.month, list = state.items[m], name = MONTHS[m];
     const allDone = list.length > 0 && list.every(x => x.done);
     checklist.innerHTML = `
-      <div class="card${allDone ? " complete" : ""}">
+      <section class="card${allDone ? " complete" : ""}" aria-labelledby="cl-title">
         <div class="card-header">
-          <div class="card-title">${name}</div>
-          <div class="sep"></div>
+          <h3 class="card-title" id="cl-title">${name}</h3>
+          <div class="sep" aria-hidden="true"></div>
           <ul class="items">
             ${list.length ? list.map(it => `
               <li class="item${it.done ? " done" : ""}" data-id="${it.id}">
                 <label>
                   <span class="text">${esc(it.text)}</span>
                   ${it.custom ? '<span class="tag">Egen</span>' : ""}
-                  <input class="cb" type="checkbox" ${it.done ? "checked" : ""} aria-label="Klart: ${esc(it.text)}">
+                  <input class="cb" type="checkbox" data-id="${it.id}" ${it.done ? "checked" : ""}>
                 </label>
-                ${it.custom ? `<button class="remove" type="button" aria-label="Ta bort ${esc(it.text)}">${X_ICON}</button>` : ""}
-              </li>`).join("") : '<li class="item"><span class="text" style="color:#71717a">Inga underhållspunkter än.</span></li>'}
+                ${it.custom ? `<button class="remove" type="button" data-id="${it.id}" aria-label="Ta bort ${esc(it.text)}">${X_ICON}</button>` : ""}
+              </li>`).join("") : '<li class="item empty">Inga underhållspunkter än.</li>'}
           </ul>
         </div>
-        <div class="all-done">${CHECK_ICON}<span>Allt klart för ${name.toLowerCase()} – snyggt jobbat!</span></div>
+        <p class="all-done" style="margin:0">${CHECK_ICON}<span>Allt klart för ${name.toLowerCase()} – snyggt jobbat!</span></p>
         ${list.length ? `<div class="card-footer">
-          <button class="btn" type="button" id="toggle-all">${allDone ? "Avmarkera alla" : CHECK_ICON + "Bocka av alla"}</button>
+          <button class="btn primary" type="button" id="toggle-all">${allDone ? "Avmarkera alla" : CHECK_ICON + "Bocka av alla"}</button>
         </div>` : ""}
-      </div>
-      <form class="add" id="add-form" autocomplete="off">
+      </section>
+      <form class="add" id="add-form" autocomplete="off" novalidate>
         <label class="add-title" for="new-item">Lägg till underhåll för ${name}</label>
         <div class="add-row">
-          <input class="input" id="new-item" type="text" maxlength="80" placeholder="T.ex. Rengör kylskåpets baksida" enterkeyhint="done">
-          <button class="btn primary" type="submit" id="add-btn" disabled>Lägg till</button>
+          <input class="input" id="new-item" type="text" maxlength="80" placeholder="T.ex. Rengör kylskåpets baksida" enterkeyhint="done" aria-describedby="new-item-error">
+          <button class="btn primary" type="submit" id="add-btn">Lägg till</button>
         </div>
+        <p class="error" id="new-item-error" hidden></p>
       </form>`;
     if (animate) { checklist.classList.remove("swap"); void checklist.offsetWidth; checklist.classList.add("swap"); }
   }
 
+  // Rita om och ställ tillbaka fokus på motsvarande kontroll (WCAG 2.4.3)
+  function commit(focusSel) {
+    save(); updateWheel(); renderChecklist(false);
+    if (focusSel) {
+      const target = checklist.querySelector(focusSel) || checklist.querySelector(".cb") || document.getElementById("new-item");
+      if (target) target.focus({ preventScroll: true });
+    }
+  }
+
   checklist.addEventListener("change", e => {
     if (!e.target.classList.contains("cb")) return;
-    const id = e.target.closest(".item").dataset.id;
+    const id = e.target.dataset.id;
     const it = state.items[state.month].find(x => x.id === id);
     it.done = e.target.checked;
-    commit();
+    commit(`.cb[data-id="${id}"]`);
+    announce(`${it.done ? "Klart" : "Inte klart"}: ${it.text}. ${progress(state.month)} i ${MONTHS[state.month].toLowerCase()}.`);
   });
   checklist.addEventListener("click", e => {
     const rm = e.target.closest(".remove");
     if (rm) {
-      const id = rm.closest(".item").dataset.id;
-      state.items[state.month] = state.items[state.month].filter(x => x.id !== id);
-      commit(); toast("Underhållspunkten togs bort");
+      const id = rm.dataset.id, list = state.items[state.month];
+      const idx = list.findIndex(x => x.id === id), removed = list[idx];
+      list.splice(idx, 1);
+      const next = list[idx] || list[idx - 1];
+      commit(next ? `.cb[data-id="${next.id}"]` : "#new-item");
+      toast(`Tog bort ”${removed.text}”`);
       return;
     }
     if (e.target.closest("#toggle-all")) {
       const list = state.items[state.month];
       const target = !list.every(x => x.done);
       list.forEach(x => x.done = target);
-      commit();
+      commit("#toggle-all");
+      announce(`${target ? "Alla punkter bockade" : "Alla punkter avmarkerade"}. ${progress(state.month)} i ${MONTHS[state.month].toLowerCase()}.`);
     }
   });
   checklist.addEventListener("input", e => {
-    if (e.target.id === "new-item") document.getElementById("add-btn").disabled = !e.target.value.trim();
+    if (e.target.id === "new-item") clearError(e.target, document.getElementById("new-item-error"));
   });
   checklist.addEventListener("submit", e => {
     e.preventDefault();
     const input = document.getElementById("new-item");
     const text = input.value.trim();
-    if (!text) return;
+    if (!text) { showError(input, document.getElementById("new-item-error"), "Skriv vad som ska göras innan du lägger till."); input.focus(); return; }
     state.items[state.month].push({ id: "c" + Date.now().toString(36) + (uid++), text, done: false, custom: true });
-    commit();
-    const again = document.getElementById("new-item");
-    again.focus();
-    toast(`Tillagd i ${MONTHS[state.month].toLowerCase()}`);
+    commit("#new-item");
+    toast(`Lade till ”${text}” i ${MONTHS[state.month].toLowerCase()}`);
   });
 
-  function commit() { save(); renderChecklist(false); updateWheel(); }
-
-  function selectMonth(i, fromTap) {
+  function selectMonth(i, opts = {}) {
     const changed = state.month !== i;
     state.month = i; save();
     updateWheel(); renderChecklist(changed);
-    if (fromTap) checklist.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (opts.focus) monthEls[i].g.focus({ preventScroll: true });
+    if (opts.scroll) checklist.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+    if (changed) announce(`${MONTHS[i]}: ${state.items[i].length} underhållspunkter, ${progress(i)}. Checklistan finns under årshjulet.`);
   }
 
-  /* ---------------- Navigering & profil ---------------- */
+  /* ---------------- Formulärfel ---------------- */
+  function showError(input, box, msg) {
+    input.setAttribute("aria-invalid", "true");
+    box.innerHTML = ERR_ICON + "<span>" + esc(msg) + "</span>";
+    box.hidden = false;
+  }
+  function clearError(input, box) { input.removeAttribute("aria-invalid"); box.hidden = true; box.textContent = ""; }
+
+  const form = document.getElementById("contact-form");
+  const email = document.getElementById("email"), phone = document.getElementById("phone");
+  const emailErr = document.getElementById("email-error"), phoneErr = document.getElementById("phone-error");
+  email.addEventListener("input", () => clearError(email, emailErr));
+  phone.addEventListener("input", () => clearError(phone, phoneErr));
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    let firstBad = null;
+    const ev = email.value.trim(), pv = phone.value.trim();
+    if (!ev) { showError(email, emailErr, "Fyll i din e-postadress."); firstBad = firstBad || email; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ev)) { showError(email, emailErr, "E-postadressen ser inte rätt ut. Exempel: namn@exempel.se"); firstBad = firstBad || email; }
+    if (!pv) { showError(phone, phoneErr, "Fyll i ditt telefonnummer."); firstBad = firstBad || phone; }
+    else if (pv.replace(/\D/g, "").length < 7) { showError(phone, phoneErr, "Telefonnumret är för kort. Exempel: 070-123 45 67"); firstBad = firstBad || phone; }
+    if (firstBad) { firstBad.focus(); return; }
+    toast("Kontaktuppgifterna sparades");
+  });
+
+  /* ---------------- Navigering ---------------- */
   document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
     const target = tab.dataset.target;
+    if (tab.getAttribute("aria-current") === "page") return;
     document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === target));
     document.querySelectorAll(".tab").forEach(t => t === tab ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+    const screen = document.getElementById(target);
+    screen.scrollTop = 0;
+    screen.focus({ preventScroll: true });   // skärmläsaren hamnar i början av den nya vyn
   }));
-  document.getElementById("contact-form").addEventListener("submit", e => { e.preventDefault(); document.activeElement.blur(); toast("Kontaktuppgifterna sparades"); });
   document.querySelectorAll("[data-toast]").forEach(b => b.addEventListener("click", () => toast(b.dataset.toast)));
 
   const toastEl = document.getElementById("toast");
   let toastTimer;
   function toast(msg) {
     toastEl.textContent = msg; toastEl.classList.add("show");
-    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1800);
+    announce(msg);
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove("show"), 4000);
   }
 
-  /* ---------------- Skala telefonen på små skärmhöjder (desktop) ---------------- */
-  const device = document.getElementById("device");
-  function fit() {
-    if (window.innerWidth <= 520) { device.style.transform = ""; return; }
-    const s = Math.min(1, (window.innerHeight - 48) / 898, (window.innerWidth - 48) / 426);
-    device.style.transform = s < 1 ? `scale(${s})` : "";
+  /* ---------------- Layout: telefonram eller helskärm ---------------- */
+  // Telefonen visas i ram bara när den får plats i full storlek. Annars fyller den fönstret,
+  // aldrig nedskalad – så att zoom i webbläsaren förstorar texten (WCAG 1.4.4).
+  function layout() {
+    document.body.classList.toggle("compact", window.innerWidth < 450 || window.innerHeight < 922);
   }
-  window.addEventListener("resize", fit); fit();
+  window.addEventListener("resize", layout); layout();
 
   updateWheel(); renderChecklist(false);
 })();
