@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boa – klickbar prototyp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #09090b;
+    --black: #000;
+    --muted: rgba(60,60,67,.6);
+    --border: #a1a1aa;
+    --border-soft: #e4e4e7;
+    --primary: #18181b;
+    --primary-fg: #fafafa;
+    --danger: #d92424;
+    --accent: #c27457;
+    --shadow-xs: 0 1px 2px rgba(0,0,0,.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Geist", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: #ececee;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  /* ---------- Device ---------- */
+  .device {
+    position: relative;
+    width: 402px; height: 874px;
+    background: #fff;
+    border-radius: 56px;
+    overflow: hidden;
+    box-shadow: 0 0 0 11px #1d1d1f, 0 0 0 12px #3a3a3c, 0 30px 80px rgba(0,0,0,.25);
+    flex-shrink: 0;
+    transform-origin: center;
+  }
+  .island {
+    position: absolute; top: 11px; left: 50%; transform: translateX(-50%);
+    width: 124px; height: 36px; border-radius: 20px; background: #000; z-index: 20;
+    pointer-events: none;
+  }
+  @media (max-width: 520px) {
+    body { display: block; background: #fff; }
+    .device { width: 100%; height: 100dvh; border-radius: 0; box-shadow: none; transform: none !important; }
+    .island { display: none; }
+  }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    position: absolute; inset: 0;
+    overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    opacity: 0; visibility: hidden;
+    transition: opacity .2s ease, visibility 0s linear .2s;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+  .screen.active { opacity: 1; visibility: visible; transition: opacity .2s ease; }
+
+  .hero { position: relative; }
+  .hero img.photo { display: block; width: 100%; height: auto; aspect-ratio: 402 / 264; }
+
+  .content { padding: 24px 16px 144px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* ---------- Startsida ---------- */
+  .chip {
+    position: absolute; left: 16px; bottom: 40px;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 24px; padding: 4px 12px 4px 8px;
+    border-radius: 100px;
+    background: rgba(255,255,255,.8);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    font-size: 12px; line-height: 16px; font-weight: 600; color: #1c1c1e;
+  }
+  .greeting { display: flex; flex-direction: column; gap: 8px; }
+  h1 { margin: 0; font-size: 30px; line-height: 36px; font-weight: 600; color: var(--black); }
+  .subtitle { margin: 0; font-size: 16px; line-height: 28px; color: var(--black); }
+  .plan { display: flex; flex-direction: column; gap: 8px; }
+  h2 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; color: var(--black); }
+  .wheel-card { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 0; border-radius: 20.8px; }
+
+  .wheel { width: 264px; height: 264px; display: block; overflow: visible; touch-action: manipulation; }
+  .wheel .month { cursor: pointer; outline: none; }
+  .wheel .month path { transition: fill .18s ease, transform .18s ease; transform-origin: 132px 132px; }
+  .wheel .month:hover path { filter: brightness(.96); }
+  .wheel .month:focus-visible path { stroke: var(--ink); stroke-width: 2; }
+  .wheel .month.selected path { fill: var(--accent); }
+  .wheel .month.selected text { fill: #fff; }
+  .wheel .month:active path { transform: scale(.985); }
+  .wheel text { font-family: "Geist", system-ui, sans-serif; font-size: 10.4px; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .wheel .mlabel { font-weight: 600; }
+  .wheel .done-dot { pointer-events: none; transition: opacity .2s; }
+  .wheel .center-name { font-size: 14.4px; font-weight: 600; fill: #000; }
+  .wheel .center-count { font-size: 11.2px; fill: var(--muted); }
+
+  /* ---------- Checklist ---------- */
+  .checklist { width: 100%; padding: 16px 0 0; display: flex; flex-direction: column; gap: 24px; scroll-margin-bottom: 150px; }
+  .checklist.swap { animation: rise .28s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .card {
+    border: 1px solid var(--border); border-radius: 12px; background: #fff;
+    padding: 12px 0; display: flex; flex-direction: column; gap: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  }
+  .card-header { padding: 0 24px; display: flex; flex-direction: column; gap: 12px; }
+  .card-title { font-size: 16px; line-height: 16px; font-weight: 600; padding-top: 4px; }
+  .sep { height: 1px; background: var(--border); }
+  .items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .item { display: flex; align-items: center; gap: 8px; min-height: 20px; }
+  .item label { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; line-height: 20px; }
+  .item .text { flex: 1; transition: color .15s; }
+  .item.done .text { color: #a1a1aa; text-decoration: line-through; }
+  .item .tag { font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 100px; background: #f4f4f5; color: #52525b; font-weight: 500; }
+  .cb {
+    appearance: none; -webkit-appearance: none; margin: 0;
+    width: 16px; height: 16px; flex-shrink: 0;
+    border: 1px solid var(--border); border-radius: 4px; background: #fff;
+    box-shadow: var(--shadow-xs);
+    display: grid; place-content: center; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .cb::after {
+    content: ""; width: 10px; height: 10px;
+    background: no-repeat center/10px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M13.3 4 6 11.3 2.7 8' stroke='%23fafafa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    transform: scale(0); transition: transform .12s ease;
+  }
+  .cb:checked { background: var(--primary); border-color: var(--primary); }
+  .cb:checked::after { transform: scale(1); }
+  .cb:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .remove {
+    width: 24px; height: 24px; margin: -2px -4px -2px 0; border: 0; background: none; border-radius: 6px;
+    display: grid; place-items: center; color: #71717a;
+  }
+  .remove:hover { background: #f4f4f5; color: var(--ink); }
+  .card-footer { padding: 0 24px; display: flex; justify-content: flex-end; }
+  .btn {
+    height: 32px; padding: 0 12px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 14px; line-height: 20px; font-weight: 500;
+    border: 1px solid var(--border); background: #fff; box-shadow: var(--shadow-xs);
+    white-space: nowrap; transition: background .15s, opacity .15s;
+  }
+  .btn:hover { background: #f4f4f5; }
+  .btn.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+  .btn.primary:hover { background: #27272a; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.lg { height: 40px; padding: 0 16px; gap: 8px; border-color: var(--border-soft); flex: 1; }
+  .btn.danger { color: var(--danger); }
+
+  .add { display: flex; flex-direction: column; gap: 8px; }
+  .add-title { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .add-row { display: flex; gap: 8px; align-items: center; }
+  .input {
+    flex: 1; min-width: 0; height: 36px; padding: 4px 12px;
+    border: 1px solid var(--border); border-radius: 6px; background: #fff;
+    box-shadow: var(--shadow-xs); font-size: 14px; line-height: 20px; outline: none;
+  }
+  .input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(9,9,11,.08); }
+  .input::placeholder { color: #a1a1aa; }
+  .all-done {
+    display: none; align-items: center; gap: 8px; padding: 0 24px;
+    font-size: 13px; line-height: 20px; color: #33573a;
+  }
+  .card.complete .all-done { display: flex; }
+
+  /* ---------- Profil ---------- */
+  .profile-hero { position: relative; }
+  .profile-hero img.photo { display: block; width: 100%; height: auto; aspect-ratio: 402 / 264; }
+  .who { position: relative; margin-top: -56px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .who img { width: 96px; height: 96px; border-radius: 50%; display: block; }
+  .who .name { font-size: 24px; line-height: 32px; font-weight: 600; }
+  .section { display: flex; flex-direction: column; gap: 8px; }
+  .row-between { display: flex; align-items: center; justify-content: space-between; }
+  .label-strong { font-size: 14px; line-height: 20px; font-weight: 600; }
+  .label { font-size: 14px; line-height: 14px; font-weight: 500; display: block; }
+  .field { height: 40px; padding: 4px 12px; }
+  .house-card { padding: 24px; gap: 8px; }
+  .house-card .title { font-size: 16px; line-height: 16px; font-weight: 600; }
+  .house-card .desc { font-size: 14px; line-height: 20px; }
+  .pref { display: flex; align-items: center; gap: 16px; }
+  .pref .txt { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .pref .t { font-size: 14px; line-height: 20px; font-weight: 600; }
+  .pref .d { font-size: 12px; line-height: 16px; }
+  .switch {
+    appearance: none; -webkit-appearance: none; margin: 0;
+    width: 32px; height: 18px; border-radius: 9999px; background: #e4e4e7;
+    position: relative; cursor: pointer; flex-shrink: 0; box-shadow: var(--shadow-xs);
+    transition: background .18s;
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 1px; left: 1px; width: 16px; height: 16px; border-radius: 50%;
+    background: #fafafa; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .18s ease;
+  }
+  .switch:checked { background: var(--primary); }
+  .switch:checked::after { transform: translateX(14px); }
+  .switch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .actions { display: flex; gap: 16px; }
+
+  /* ---------- Tab bar ---------- */
+  .tabbar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 130px;
+    padding: 0 16px 34px; background: #fff; z-index: 10;
+    display: flex;
+  }
+  .tabbar::before { content: ""; position: absolute; top: 0; left: 16px; right: 16px; height: 1px; background: var(--border-soft); }
+  .tab {
+    flex: 1; border: 0; background: none; padding: 14px 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 14px; line-height: 20px; font-weight: 500; color: #000;
+  }
+  .tab svg { width: 48px; height: 48px; display: block; transition: transform .15s; }
+  .tab:active svg { transform: scale(.92); }
+  .tab[aria-current="page"] { color: #000; }
+  .home-indicator { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 100px; background: #000; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: absolute; left: 50%; bottom: 146px; transform: translate(-50%, 12px);
+    background: var(--primary); color: var(--primary-fg);
+    font-size: 14px; line-height: 20px; font-weight: 500;
+    padding: 8px 14px; border-radius: 100px; z-index: 30;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="device" id="device">
+  <div class="island" aria-hidden="true"></div>
+
+  <!-- ================= Startsida ================= -->
+  <main class="screen active" id="screen-arshjul" aria-label="Startsida">
+    <div class="hero">
+      <img class="photo" src="house.png" alt="Villan, byggd 1964">
+      <div class="chip">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7.408 1.517a.64.64 0 0 0-.816 0l-4.9 4.141a.6.6 0 0 0 .758.934l.467-.408v5.483c0 .232.092.455.256.619a.875.875 0 0 0 .619.256h2.1v-3.5h2.216v3.5h2.1a.875.875 0 0 0 .875-.875V6.183l.467.409a.6.6 0 0 0 .758-.934l-4.9-4.141Z" fill="#1C1C1E"/></svg>
+        Villa · byggd 1964
+      </div>
+    </div>
+    <div class="content">
+      <div class="greeting">
+        <h1>Hej Kajsa</h1>
+        <p class="subtitle">Välkommen till Boa - din personliga underhållsplan</p>
+      </div>
+      <section class="plan" aria-labelledby="plan-title">
+        <h2 id="plan-title">Din underhållsplan 2026</h2>
+        <div class="wheel-card">
+          <svg class="wheel" id="wheel" viewBox="0 0 264 264" role="group" aria-label="Årshjul – välj månad"></svg>
+          <div class="checklist" id="checklist" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ================= Profil ================= -->
+  <main class="screen" id="screen-profil" aria-label="Profil">
+    <div class="profile-hero">
+      <img class="photo" src="house-blur.png" alt="">
+      <div class="who">
+        <img src="avatar.png" alt="Kajsa Widestam">
+        <div class="name">Kajsa Widestam</div>
+      </div>
+    </div>
+    <div class="content">
+      <h1>Profil</h1>
+      <form class="section" id="contact-form" autocomplete="off">
+        <div class="row-between">
+          <span class="label-strong">Kontaktuppgifter</span>
+          <button class="btn primary" type="submit">Spara</button>
+        </div>
+        <label class="label" for="email">E-post</label>
+        <input class="input field" id="email" type="email" value="kajsa.widestam@outlook.com">
+        <label class="label" for="phone">Telefon</label>
+        <input class="input field" id="phone" type="tel" value="070-549 63 18">
+      </form>
+      <div class="card house-card">
+        <div class="title">Mitt hus</div>
+        <div class="desc">Storgatan 12 · Västerås</div>
+      </div>
+      <div class="section">
+        <span class="label-strong" style="font-weight:500">Påminnelser</span>
+        <div class="pref">
+          <div class="txt"><span class="t">Underhåll</span><span class="d">När det är dags att ta hand om huset</span></div>
+          <input class="switch" type="checkbox" role="switch" checked aria-label="Påminnelser om underhåll">
+        </div>
+        <div class="pref">
+          <div class="txt"><span class="t">Säsongstips</span><span class="d">Råd inför nästa säsong</span></div>
+          <input class="switch" type="checkbox" role="switch" checked aria-label="Säsongstips">
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn lg" type="button" data-toast="Kontoinställningar är inte med i prototypen">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M12.933 10a1.1 1.1 0 0 0 .22 1.213l.04.04a1.334 1.334 0 1 1-1.886 1.887l-.04-.04a1.1 1.1 0 0 0-1.214-.22 1.1 1.1 0 0 0-.666 1.006V14a1.333 1.333 0 1 1-2.667 0v-.06A1.1 1.1 0 0 0 6 12.933a1.1 1.1 0 0 0-1.213.22l-.04.04a1.334 1.334 0 1 1-1.887-1.886l.04-.04a1.1 1.1 0 0 0 .22-1.214 1.1 1.1 0 0 0-1.007-.666H2a1.333 1.333 0 0 1 0-2.667h.06A1.1 1.1 0 0 0 3.067 6a1.1 1.1 0 0 0-.22-1.213l-.04-.04A1.334 1.334 0 1 1 4.693 2.86l.04.04a1.1 1.1 0 0 0 1.214.22H6a1.1 1.1 0 0 0 .667-1.007V2a1.333 1.333 0 0 1 2.666 0v.06a1.1 1.1 0 0 0 .667 1.007 1.1 1.1 0 0 0 1.213-.22l.04-.04a1.334 1.334 0 1 1 1.887 1.886l-.04.04a1.1 1.1 0 0 0-.22 1.214V6a1.1 1.1 0 0 0 1.007.667H14a1.333 1.333 0 0 1 0 2.666h-.06a1.1 1.1 0 0 0-1.007.667Z" stroke="#09090B" stroke-width="1.333" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" stroke="#09090B" stroke-width="1.333"/></svg>
+          Kontoinställningar
+        </button>
+        <button class="btn lg danger" type="button" data-toast="Utloggning är inte med i prototypen">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 14H3.333A1.333 1.333 0 0 1 2 12.667V3.333A1.333 1.333 0 0 1 3.333 2H6M10.667 11.333 14 8l-3.333-3.333M14 8H6" stroke="#D92424" stroke-width="1.333" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Logga ut
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= Tab bar ================= -->
+  <nav class="tabbar" aria-label="Huvudnavigering">
+    <button class="tab" data-target="screen-arshjul" aria-current="page">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><g fill="#000"><path d="M24.333 10.671a13.4 13.4 0 0 1 6.043 1.62l-1.667 2.886a10 10 0 0 0-4.376-1.172v-3.334Z"/><path d="M30.953 12.623a13.4 13.4 0 0 1 4.423 4.424l-2.886 1.667a10 10 0 0 0-3.204-3.203l1.667-2.888Z"/><path d="M35.71 17.624a13.4 13.4 0 0 1 1.619 6.043h-3.334a10 10 0 0 0-1.173-4.376l2.888-1.667Z"/><path d="M37.33 24.333a13.4 13.4 0 0 1-1.62 6.043l-2.887-1.667a10 10 0 0 0 1.172-4.376h3.334Z"/><path d="M35.377 30.953a13.4 13.4 0 0 1-4.424 4.424l-1.667-2.887a10 10 0 0 0 3.203-3.204l2.888 1.667Z"/><path d="M30.376 35.71a13.4 13.4 0 0 1-6.043 1.619v-3.334a10 10 0 0 0 4.376-1.173l1.667 2.888Z"/><path d="M23.667 37.33a13.4 13.4 0 0 1-6.043-1.62l1.667-2.887a10 10 0 0 0 4.376 1.172v3.334Z"/><path d="M17.047 35.377a13.4 13.4 0 0 1-4.424-4.424l2.887-1.667a10 10 0 0 0 3.204 3.203l-1.667 2.888Z"/><path d="M12.29 30.376a13.4 13.4 0 0 1-1.619-6.043h3.334a10 10 0 0 0 1.173 4.376l-2.888 1.667Z"/><path d="M10.67 23.667a13.4 13.4 0 0 1 1.62-6.043l2.887 1.667a10 10 0 0 0-1.172 4.376H10.67Z"/><path d="M12.623 17.047a13.4 13.4 0 0 1 4.424-4.424l1.667 2.887a10 10 0 0 0-3.203 3.204l-2.888-1.667Z"/><path d="M17.624 12.29a13.4 13.4 0 0 1 6.043-1.619v3.334a10 10 0 0 0-4.376 1.173l-1.667-2.888Z"/><path d="M19.759 16.002a8.8 8.8 0 0 1 11.92 3.165l-2.998 1.74a5.3 5.3 0 0 0-7.182-1.906l-1.74-2.999Z"/><path d="M31.998 19.759a8.8 8.8 0 0 1-3.164 11.92l-1.741-2.998a5.3 5.3 0 0 0 1.906-7.182l2.999-1.74Z"/><path d="M28.241 31.998a8.8 8.8 0 0 1-11.92-3.165l2.998-1.74a5.3 5.3 0 0 0 7.182 1.906l1.74 2.999Z"/><path d="M16.002 28.241a8.8 8.8 0 0 1 3.164-11.92l1.741 2.998a5.3 5.3 0 0 0-1.906 7.182l-2.999 1.74Z"/></g></svg>
+      Årshjul
+    </button>
+    <button class="tab" data-target="screen-profil">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#1C1B1F" d="M14.66 32.16a16 16 0 0 1 4.56-2.46 15.6 15.6 0 0 1 5.28-.9c1.84 0 3.6.3 5.28.9 1.68.6 3.2 1.42 4.56 2.46a12.6 12.6 0 0 0 2.18-3.72c.52-1.387.78-2.867.78-4.44 0-3.547-1.247-6.567-3.74-9.06C31.067 12.447 28.047 11.2 24.5 11.2s-6.567 1.247-9.06 3.74C12.947 17.433 11.7 20.453 11.7 24c0 1.573.26 3.053.78 4.44a12.6 12.6 0 0 0 2.18 3.72Zm5.86-8.18c-1.08-1.08-1.62-2.407-1.62-3.98s.54-2.9 1.62-3.98c1.08-1.08 2.407-1.62 3.98-1.62s2.9.54 3.98 1.62c1.08 1.08 1.62 2.407 1.62 3.98s-.54 2.9-1.62 3.98c-1.08 1.08-2.407 1.62-3.98 1.62s-2.9-.54-3.98-1.62ZM24.5 40a15.6 15.6 0 0 1-6.24-1.26 16.2 16.2 0 0 1-5.08-3.42 16.2 16.2 0 0 1-3.42-5.08A15.6 15.6 0 0 1 8.5 24c0-2.213.42-4.293 1.26-6.24a16.2 16.2 0 0 1 3.42-5.08 16.2 16.2 0 0 1 5.08-3.42A15.6 15.6 0 0 1 24.5 8c2.213 0 4.293.42 6.24 1.26a16.2 16.2 0 0 1 5.08 3.42 16.2 16.2 0 0 1 3.42 5.08c.84 1.947 1.26 4.027 1.26 6.24s-.42 4.293-1.26 6.24a16.2 16.2 0 0 1-3.42 5.08 16.2 16.2 0 0 1-5.08 3.42A15.6 15.6 0 0 1 24.5 40Zm4-3.82a12.3 12.3 0 0 0 3.44-1.78 12.3 12.3 0 0 0-3.44-1.78A12.8 12.8 0 0 0 24.5 32c-1.413 0-2.747.207-4 .62a12.3 12.3 0 0 0-3.44 1.78 12.3 12.3 0 0 0 3.44 1.78c1.253.413 2.587.62 4 .62s2.747-.207 4-.62Zm-2.28-14.46c.453-.453.68-1.027.68-1.72s-.227-1.267-.68-1.72c-.453-.453-1.027-.68-1.72-.68s-1.267.227-1.72.68c-.453.453-.68 1.027-.68 1.72s.227 1.267.68 1.72c.453.453 1.027.68 1.72.68s1.267-.227 1.72-.68Z"/></svg>
+      Profil
+    </button>
+    <div class="home-indicator" aria-hidden="true"></div>
+  </nav>
+
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script>
+(() => {
+  const MONTHS = ["Januari","Februari","Mars","April","Maj","Juni","Juli","Augusti","September","Oktober","November","December"];
+  const SHORT  = ["Jan","Feb","Mar","Apr","Maj","Jun","Jul","Aug","Sep","Okt","Nov","Dec"];
+  // Säsonger enligt årshjulet i Figma
+  const SEASON = { winter: {fill:"#dfe9f3", ink:"#2d4a64"}, spring: {fill:"#e0eddb", ink:"#33573a"},
+                   summer: {fill:"#f7edd2", ink:"#6a521c"}, autumn: {fill:"#f5e1d7", ink:"#7a3f28"} };
+  const MONTH_SEASON = ["winter","winter","spring","spring","spring","summer","summer","summer","autumn","autumn","autumn","winter"];
+  const DEFAULT_ITEMS = [
+    ["Gå igenom villkoren i hemförsäkringen","Byt eller rengör ventilationsfiltren"],
+    ["Uppdatera tak-, fasad- och fönsterplanen","Leta efter vattenläckage"],
+    ["Se över säkerhetsventiler","Rensa golvbrunnar och vattenlås"],
+    ["Kolla takpannor, plåt och genomföringar","Rensa dräneringsbrunnar"],
+    ["Beskär träd/buskar vid tak och fasad","Rengör ventilerna och köksfläktens fettfilter"],
+    ["Sök sprickor, flagning och röta i fasaden","Se över altan/trall, behandla vid behov"],
+    ["Leta efter fukt och mögellukt i krypgrunden","Se över altan/trall, behandla vid behov"],
+    ["Boka höstservice: luftvärmepump/panna","Följ upp sotning och brandskyddskontroll"],
+    ["Kolla takpannor, plåt och genomföringar","Rengör värmefilter och kolla systemtryck"],
+    ["Stäng/töm utekranar före frost","Kontrollera fönster, dörrar och tätningslister"],
+    ["Rensa rännor och stuprör efter lövfall","Testa jordfelsbrytaren"],
+    ["Testa brandvarnarna och byt batteri","Kontrollera brandsläckare och brandfilt"]
+  ];
+
+  const STORE_KEY = "boa-prototyp-v1";
+  let uid = 0;
+  const freshState = () => ({
+    month: new Date().getMonth(),
+    items: DEFAULT_ITEMS.map(list => list.map(text => ({ id: "d" + (uid++), text, done: false, custom: false })))
+  });
+  let state;
+  try { state = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { state = null; }
+  if (!state || !Array.isArray(state.items) || state.items.length !== 12) state = freshState();
+  const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} };
+
+  /* ---------------- Årshjul ---------------- */
+  const svgNS = "http://www.w3.org/2000/svg";
+  const C = 132, deg = Math.PI / 180;
+  const pt = (r, a) => [C + r * Math.cos(a), C + r * Math.sin(a)];
+  function sector(r0, r1, a0, a1) {
+    const [x0, y0] = pt(r1, a0), [x1, y1] = pt(r1, a1), [x2, y2] = pt(r0, a1), [x3, y3] = pt(r0, a0);
+    const large = (a1 - a0) > Math.PI ? 1 : 0;
+    return `M${x0} ${y0}A${r1} ${r1} 0 ${large} 1 ${x1} ${y1}L${x2} ${y2}A${r0} ${r0} 0 ${large} 0 ${x3} ${y3}Z`;
+  }
+  const el = (tag, attrs, parent) => { const n = document.createElementNS(svgNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+
+  const wheel = document.getElementById("wheel");
+  const R_OUT = 128, R_IN = 128 * 0.675;          // månadsring
+  const S_OUT = 83.2, S_IN = 83.2 * 0.6346;        // säsongsring
+  const STROKE = { stroke: "#fff", "stroke-width": 2.4, "stroke-linejoin": "round" };
+
+  // Säsongsring (dekorativ)
+  const seasons = [
+    { name: "Vinter", from: -120, to: -30, fill: "#c6d8ea", ink: "#2d4a64" },
+    { name: "Vår",    from: -30,  to: 60,  fill: "#c8e0c0", ink: "#33573a" },
+    { name: "Sommar", from: 60,   to: 150, fill: "#f0dda8", ink: "#6a521c" },
+    { name: "Höst",   from: 150,  to: 240, fill: "#ebc7b5", ink: "#7a3f28" }
+  ];
+  const seasonG = el("g", { "aria-hidden": "true" }, wheel);
+  seasons.forEach(s => {
+    el("path", { d: sector(S_IN, S_OUT, s.from * deg, s.to * deg), fill: s.fill, ...STROKE }, seasonG);
+    const mid = (s.from + s.to) / 2 * deg, [x, y] = pt((S_IN + S_OUT) / 2, mid);
+    el("text", { x, y, fill: s.ink }, seasonG).textContent = s.name;
+  });
+
+  // Månadsring (klickbar)
+  const monthEls = [];
+  for (let i = 0; i < 12; i++) {
+    const a0 = (-90 + i * 30) * deg, a1 = (-60 + i * 30) * deg, mid = (a0 + a1) / 2;
+    const sea = SEASON[MONTH_SEASON[i]];
+    const g = el("g", { class: "month", tabindex: 0, role: "button", "data-i": i }, wheel);
+    el("path", { d: sector(R_IN, R_OUT, a0, a1), fill: sea.fill, ...STROKE }, g);
+    const [x, y] = pt((R_IN + R_OUT) / 2, mid);
+    el("text", { x, y: y - 1, class: "mlabel", fill: sea.ink }, g).textContent = SHORT[i];
+    const [dx, dy] = pt((R_IN + R_OUT) / 2, mid);
+    const dot = el("circle", { cx: dx, cy: dy + 10, r: 1.8, class: "done-dot", fill: sea.ink, opacity: 0 }, g);
+    g.addEventListener("click", () => selectMonth(i, true));
+    g.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectMonth(i, true); }
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); monthEls[(i + 1) % 12].g.focus(); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); monthEls[(i + 11) % 12].g.focus(); }
+    });
+    monthEls.push({ g, dot, ink: sea.ink });
+  }
+
+  // Mitten
+  const centerName = el("text", { x: C, y: C - 8, class: "center-name" }, wheel);
+  const centerCount = el("text", { x: C, y: C + 12, class: "center-count" }, wheel);
+
+  function updateWheel() {
+    monthEls.forEach((m, i) => {
+      const list = state.items[i];
+      const doneAll = list.length > 0 && list.every(it => it.done);
+      const sel = i === state.month;
+      m.g.classList.toggle("selected", sel);
+      m.g.setAttribute("aria-pressed", sel ? "true" : "false");
+      m.g.setAttribute("aria-label", `${MONTHS[i]}, ${list.filter(x => x.done).length} av ${list.length} klara`);
+      m.dot.setAttribute("opacity", doneAll ? 1 : 0);
+      m.dot.setAttribute("fill", sel ? "#fff" : m.ink);
+    });
+    const list = state.items[state.month];
+    centerName.textContent = MONTHS[state.month];
+    centerCount.textContent = `${list.filter(x => x.done).length} av ${list.length} klara`;
+  }
+
+  /* ---------------- Checklista ---------------- */
+  const checklist = document.getElementById("checklist");
+  const esc = s => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const CHECK_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13.333 4 6 11.333 2.667 8" stroke="currentColor" stroke-width="1.333" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const X_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M12 4 4 12M4 4l8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+  function renderChecklist(animate) {
+    const m = state.month, list = state.items[m], name = MONTHS[m];
+    const allDone = list.length > 0 && list.every(x => x.done);
+    checklist.innerHTML = `
+      <div class="card${allDone ? " complete" : ""}">
+        <div class="card-header">
+          <div class="card-title">${name}</div>
+          <div class="sep"></div>
+          <ul class="items">
+            ${list.length ? list.map(it => `
+              <li class="item${it.done ? " done" : ""}" data-id="${it.id}">
+                <label>
+                  <span class="text">${esc(it.text)}</span>
+                  ${it.custom ? '<span class="tag">Egen</span>' : ""}
+                  <input class="cb" type="checkbox" ${it.done ? "checked" : ""} aria-label="Klart: ${esc(it.text)}">
+                </label>
+                ${it.custom ? `<button class="remove" type="button" aria-label="Ta bort ${esc(it.text)}">${X_ICON}</button>` : ""}
+              </li>`).join("") : '<li class="item"><span class="text" style="color:#71717a">Inga underhållspunkter än.</span></li>'}
+          </ul>
+        </div>
+        <div class="all-done">${CHECK_ICON}<span>Allt klart för ${name.toLowerCase()} – snyggt jobbat!</span></div>
+        ${list.length ? `<div class="card-footer">
+          <button class="btn" type="button" id="toggle-all">${allDone ? "Avmarkera alla" : CHECK_ICON + "Bocka av alla"}</button>
+        </div>` : ""}
+      </div>
+      <form class="add" id="add-form" autocomplete="off">
+        <label class="add-title" for="new-item">Lägg till underhåll för ${name}</label>
+        <div class="add-row">
+          <input class="input" id="new-item" type="text" maxlength="80" placeholder="T.ex. Rengör kylskåpets baksida" enterkeyhint="done">
+          <button class="btn primary" type="submit" id="add-btn" disabled>Lägg till</button>
+        </div>
+      </form>`;
+    if (animate) { checklist.classList.remove("swap"); void checklist.offsetWidth; checklist.classList.add("swap"); }
+  }
+
+  checklist.addEventListener("change", e => {
+    if (!e.target.classList.contains("cb")) return;
+    const id = e.target.closest(".item").dataset.id;
+    const it = state.items[state.month].find(x => x.id === id);
+    it.done = e.target.checked;
+    commit();
+  });
+  checklist.addEventListener("click", e => {
+    const rm = e.target.closest(".remove");
+    if (rm) {
+      const id = rm.closest(".item").dataset.id;
+      state.items[state.month] = state.items[state.month].filter(x => x.id !== id);
+      commit(); toast("Underhållspunkten togs bort");
+      return;
+    }
+    if (e.target.closest("#toggle-all")) {
+      const list = state.items[state.month];
+      const target = !list.every(x => x.done);
+      list.forEach(x => x.done = target);
+      commit();
+    }
+  });
+  checklist.addEventListener("input", e => {
+    if (e.target.id === "new-item") document.getElementById("add-btn").disabled = !e.target.value.trim();
+  });
+  checklist.addEventListener("submit", e => {
+    e.preventDefault();
+    const input = document.getElementById("new-item");
+    const text = input.value.trim();
+    if (!text) return;
+    state.items[state.month].push({ id: "c" + Date.now().toString(36) + (uid++), text, done: false, custom: true });
+    commit();
+    const again = document.getElementById("new-item");
+    again.focus();
+    toast(`Tillagd i ${MONTHS[state.month].toLowerCase()}`);
+  });
+
+  function commit() { save(); renderChecklist(false); updateWheel(); }
+
+  function selectMonth(i, fromTap) {
+    const changed = state.month !== i;
+    state.month = i; save();
+    updateWheel(); renderChecklist(changed);
+    if (fromTap) checklist.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  /* ---------------- Navigering & profil ---------------- */
+  document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
+    const target = tab.dataset.target;
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === target));
+    document.querySelectorAll(".tab").forEach(t => t === tab ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+  }));
+  document.getElementById("contact-form").addEventListener("submit", e => { e.preventDefault(); document.activeElement.blur(); toast("Kontaktuppgifterna sparades"); });
+  document.querySelectorAll("[data-toast]").forEach(b => b.addEventListener("click", () => toast(b.dataset.toast)));
+
+  const toastEl = document.getElementById("toast");
+  let toastTimer;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1800);
+  }
+
+  /* ---------------- Skala telefonen på små skärmhöjder (desktop) ---------------- */
+  const device = document.getElementById("device");
+  function fit() {
+    if (window.innerWidth <= 520) { device.style.transform = ""; return; }
+    const s = Math.min(1, (window.innerHeight - 48) / 898, (window.innerWidth - 48) / 426);
+    device.style.transform = s < 1 ? `scale(${s})` : "";
+  }
+  window.addEventListener("resize", fit); fit();
+
+  updateWheel(); renderChecklist(false);
+})();
+</script>
+</body>
+</html>
